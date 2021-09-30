@@ -1,0 +1,33 @@
+
+
+# After you have Docker and Docker Compose installed,
+# and this file is ready, you use this file and run it with:
+# `docker-compose up --build`
+
+version: "3"
+
+services:
+  service1:
+    container_name: service1
+    build:
+      dockerfile: Dockerfile
+      context: ./Service1
+    ports:
+      - "8001:8001"
+    networks:
+      - backend
+
+  service2:
+    container_name: service2
+    build:
+        dockerfile: Dockerfile
+        context: ./Service2
+    ports:
+      - "8002"
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
+
