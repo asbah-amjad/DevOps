@@ -1,0 +1,15 @@
+{
+  "name": "Original",
+  "version": "1.0.0",
+  "description": "",
+  "main": "original.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "amqplib": "^0.8.0"
+  }
+}

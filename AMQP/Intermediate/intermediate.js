@@ -4,34 +4,35 @@
     . Publishes message to my.i
 */
 
-const rabbit = require('amqplib');
-const QUEUE_NAME_1 = 'queue1';
+const ampqplib = require("amqplib");
 
-const QUEUE_NAME_2 = 'queue2';
-const EXCHANGE_TYPE = 'topic';
-const EXCHANGE_NAME = 'intermediate';
-const KEY = 'my.i';
+const exchange = 'topic_logs';
+const key1 = 'my.o';
+const key2 = 'my.i';
 
-connection = rabbit.connect('amqp://localhost');
-connection.then(async (conn) => {
-    const channel = await conn.createChannel();
-    //receives a message from topic my.o queue1
-    channel.consume(QUEUE_NAME_1, (m) => {
-        const message = m.content.toString()
-        console.log(message)
-        channel.ack(m)
+const intermediate = async () => {
 
-        //wait for 1 sec
-        setTimeout(async function () {
+    const connection = await ampqplib.connect('amqp://rabbitmq')
+    const channel = await connection.createChannel();
 
-            await channel.assertExchange(EXCHANGE_NAME, EXCHANGE_TYPE);
-            //creation of new queue
-            await channel.assertQueue(QUEUE_NAME_2);
-            //bindQueue method to bind intermediate to queue2 with the routing key
-            channel.bindQueue(QUEUE_NAME_2, EXCHANGE_NAME, KEY);
-            channel.sendToQueue(QUEUE_NAME_2, Buffer.from("Got " + m));
-            console.log("received")
-        }, 1000);
+    await channel.assertExchange(exchange, 'topic', { durable: true })
+    const channelQueue = channel.assertQueue('', { exclusive: true })
+    //binding of queue with key my.o
+    channel.bindQueue(channelQueue.queue, exchange, key1)
+    console.log('IMED start listening to topic', key1);
 
-    })
-})
+    channel.consume(channelQueue.queue, message => {
+        if (message.content) {
+            // for delay of 1 sec
+            setTimeout(() => {
+                const newMessage = `Got ${message.content}`
+                channel.publish(exchange, key2, Buffer.from(newMessage));
+                console.log('IMED Published message', newMessage);
+            }, 1000);
+
+        }
+
+    }, { noAck: true })
+}
+
+setTimeout(() => { intermediate() }, 10000);

@@ -3,31 +3,30 @@
      Publishes messages to "my.o"
 */
 
-const rabbit = require('amqplib');
-const QUEUE_NAME_1 = 'queue1';
-const EXCHANGE_TYPE = 'topic';
-const EXCHANGE_NAME = 'original';
-const KEY = 'my.o';
-let i = 1;
+const ampqplib = require("amqplib");
 
-//created connection
-connection = rabbit.connect('amqp://localhost');
-connection.then(async (conn) => {
+const exchange = 'topic_logs';
+const key = 'my.o'
+
+const delay = time => {
+    new Promise(res => setTimeout(res, time))
+};
+
+const original = async () => {
+    const connection = await ampqplib.connect('amqp://rabbitmq')
     //channel creation
-    const channel = await conn.createChannel();
-    //exchange creation
-    await channel.assertExchange(EXCHANGE_NAME, EXCHANGE_TYPE);
-    //queue creation
-    await channel.assertQueue(QUEUE_NAME_1);
-    //bindQueue method to bind original to queue1 with the routing key
-    channel.bindQueue(QUEUE_NAME_1, EXCHANGE_NAME, KEY);
+    const channel = await connection.createChannel();
+    //exchange creation of type topic
+    await channel.assertExchange(exchange, 'topic', { durable: true })
 
-    while (i <= 3) {
-        channel.sendToQueue(QUEUE_NAME_1, Buffer.from("MSG_" + i));
-        setTimeout(function () {
-            console.log("Waiting")
-        }, 3000);
-        i++;
+    for (let i = 1; i <= 3; i++) {
+        let message = 'MSG_' + i;
+        channel.publish(exchange, key, Buffer.from(message));
+        console.log('Published message', message);
+        await delay(3000); //delay of 3 second
     }
-})
+
+}
+
+setTimeout(() => { original(); }, 10000);
 

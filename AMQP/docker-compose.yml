@@ -1,0 +1,63 @@
+version: "3.9"
+
+services:
+  original:
+    container_name: "original"
+    build:
+      context: ./Original
+      dockerfile: Dockerfile
+    working_dir: /usr/src/app
+    networks:
+      - app-network
+    depends_on:
+      - "rabbitmq"
+
+  intermediate:
+    container_name: "intermediate"
+    build:
+      context: ./Intermediate
+      dockerfile: Dockerfile
+    working_dir: /usr/src/app
+    networks:
+      - app-network
+    depends_on:
+      - "rabbitmq"
+
+  observer:
+    container_name: "observer"
+    build:
+      context: ./Observer
+      dockerfile: Dockerfile
+    working_dir: /usr/src/app
+    volumes:
+      - ./output:/usr/src/app/output
+    networks:
+      - app-network
+    depends_on:
+      - "rabbitmq"
+
+  httpserv:
+    container_name: "httpserv"
+    build:
+      context: ./Httpserv
+      dockerfile: Dockerfile
+    working_dir: /usr/src/app
+    volumes:
+      - ./output:/usr/src/app/output
+    ports:
+      - 8080:8080
+    networks:
+      - app-network
+
+  rabbitmq:
+    container_name: "rabbitmq"
+    image: rabbitmq:3.9-management
+    ports:
+      - 5672:5672
+      - 15672:15672
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

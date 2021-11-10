@@ -4,27 +4,37 @@
         my.o and my.i
     . Stores the messages into a file
 */
-const rabbit = require('amqplib');
-const QUEUE_NAME_3 = 'queue3';
-const EXCHANGE_TYPE = 'topic';
-const EXCHANGE_NAME = 'observer';
-const KEY = 'my.i';
+const ampqplib = require('amqplib');
+const fs = require('fs');
 
-//created connection
-connection = rabbit.connect('amqp://localhost');
-connection.then(async (conn) => {
-    //channel creation
-    const channel = await conn.createChannel();
-    //exchange creation
-    await channel.assertExchange(EXCHANGE_NAME, EXCHANGE_TYPE);
-    //queue creation
-    await channel.assertQueue(QUEUE_NAME_3);
-    //bindQueue method to bind observer to queue3 with the routing key
-    channel.bindQueue(QUEUE_NAME_3, EXCHANGE_NAME, KEY);
-    channel.consume(QUEUE_NAME_3, (m) => {
-        const message = m.content.toString()
-        console.log(message)
-        channel.ack(m)
-    })
-})
+const exchange = 'topic_logs';
+const key = '#';
 
+const observer = async () => {
+
+    const connection = await ampqplib.connect('amqp://rabbitmq')
+    const channel = await connection.createChannel();
+
+    await channel.assertExchange(exchange, 'topic', { durable: true })
+    const channelQueue = channel.assertQueue('', { exclusive: true })
+    //queue binding with # key, to receive message from all topics
+    channel.bindQueue(channelQueue.queue, exchange, key)
+
+    channel.consume(channelQueue.queue, message => {
+        if (message.content) {
+
+            const newMessage = `${new Date().toISOString()} Topic ${message.fields.routingKey}: ${message.content}`;
+            //writing to a file
+            fs.appendFile('./output/output.txt', newMessage + '\n', (err) => {
+                if (err) {
+                    return console.log(err);
+                }
+                console.log(newMessage, ' written to the file');
+            })
+
+        }
+
+    }, { noAck: true })
+}
+
+setTimeout(() => { observer() }, 10000);
